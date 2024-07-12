@@ -3,8 +3,15 @@ import curses
 
 class Game:
     def __init__(self, map_path: str):
+        self.load(map_path)
+
+    def start(self, stdscr):
+        self.update_user(stdscr)
+
+    def load(self, map_path):
         self.load_map(map_path)
-        self.symbol = '@'
+        self.load_character()
+        self.load_prize()
 
     def load_map(self, map_path: str):
         with open(map_path, 'r') as f:
@@ -21,12 +28,27 @@ class Game:
         self.width = width
         self.height = height
 
-    def start(self, stdscr):
-        x_start, y_start = self.start_pos()
-        self.start_character(x_start, y_start)
+    def load_character(self):
+        self.symbol = '@'
+        while True:
+            x, y = np.random.randint(self.width), np.random.randint(self.height)
+            if self.map[y, x] == '-':
+                break
+        self.x = x
+        self.y = y
+        self.map[y, x] = self.symbol
 
-        self.start_map()
-        
+    def load_prize(self):
+        self.prize = '*'
+        while True:
+            x, y = np.random.randint(self.width), np.random.randint(self.height)
+            if self.map[y, x] == '-':
+                break
+        self.prize_x = x
+        self.prize_y = y
+        self.map[y, x] = self.prize
+
+    def update_user(self, stdscr):
         while True:
             self.print_map(stdscr)
 
@@ -36,31 +58,25 @@ class Game:
             if user_input == 'p':
                 break
             elif user_input == 'q':
+                if x > 0 and self.map[y, x-1] == '*':
+                    break
                 if x > 0 and self.map[y, x-1] == '-':
                     self.update_map(x-1, y)
             elif user_input == 'd':
+                if x < self.width and self.map[y, x+1] == '*':
+                    break
                 if x < self.width and self.map[y, x+1] == '-':
                     self.update_map(x+1, y)
             elif user_input == 's':
+                if y < self.height and self.map[y+1, x] == '*':
+                    break
                 if y < self.height and self.map[y+1, x] == '-':
                     self.update_map(x, y+1)
             elif user_input == 'z':
+                if y > 0 and self.map[y-1, x] == '*':
+                    break
                 if y > 0 and self.map[y-1, x] == '-':
                     self.update_map(x, y-1)
-
-
-    def start_pos(self):
-        while True:
-            x, y = np.random.randint(self.width), np.random.randint(self.height)
-            if self.map[y, x] == '-':
-                return x, y
-            
-    def start_map(self):
-        self.map[self.y, self.x] = self.symbol
-
-    def start_character(self, x, y):
-        self.x = x
-        self.y = y
 
     def update_map(self, x, y):
         old_x, old_y = self.x, self.y
