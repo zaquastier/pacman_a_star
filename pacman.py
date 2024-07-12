@@ -24,6 +24,7 @@ class Node():
 class Game:
     def __init__(self, map_path: str):
         self.load(map_path)
+        self.lost = False
 
     def a_star(self, stdscr):
         counter = 0
@@ -32,20 +33,23 @@ class Game:
             for i, move in enumerate(path):
                 x, y = move[0], move[1]
 
-                self.print_map(stdscr, opt=str(self.x) + ', ' + str(self.y) + '  ' + str(x) + ', ' + str(y), offset=1)
+                self.print_map(stdscr)
+                while(self.lost):
+                    continue
 
                 if self.map[self.y + y, self.x + x] == self.prize:
                     self.load_prize()
                 self.update_map(self.x + x, self.y + y)
                 
-                sleep(0.2)
+                sleep(0.05)
                 if counter % 5 == 0:
-                    x_move = np.random.randint(-2, 2)
-                    y_move = np.random.randint(-2, 2) if x_move == 0 else 0
+                    x_move = np.random.randint(-1, 2)
+                    y_move = np.random.randint(-1, 2) if x_move == 0 else 0
                     if self.enemy_x + x_move > 0 \
                     and self.enemy_x + x_move < self.width \
                     and self.enemy_y + y_move > 0 \
-                    and self.enemy_y + y_move < self.height:
+                    and self.enemy_y + y_move < self.height \
+                    and self.map[self.enemy_y + y_move, self.enemy_x + x_move] == '-':
                         self.update_map(self.enemy_x + x_move, self.enemy_y + y_move, 'enemy')
                     counter = 0
                 counter +=1 
@@ -174,8 +178,12 @@ class Game:
         return nodes
     
     def update_user(self, stdscr):
+
+        counter = 0
         while True:
             self.print_map(stdscr)
+            while(self.lost):
+                continue
 
             x, y = self.x, self.y
             
@@ -186,41 +194,58 @@ class Game:
                 if x > 0 and self.map[y, x-1] == self.prize:
                     self.update_map(x-1, y)
                     self.load_prize()
-                if x > 0 and self.map[y, x-1] == '-':
+                if x > 0 and self.map[y, x-1] != '%':
                     self.update_map(x-1, y)
             elif user_input == 'd':
                 if x < self.width and self.map[y, x+1] == self.prize:
                     self.update_map(x+1, y)
                     self.load_prize()
-                if x < self.width and self.map[y, x+1] == '-':
+                if x < self.width and self.map[y, x+1] != '%':
                     self.update_map(x+1, y)
             elif user_input == 's':
                 if y < self.height and self.map[y+1, x] == self.prize:
                     self.load_prize()
                     self.update_map(x, y+1)
-                if y < self.height and self.map[y+1, x] == '-':
+                if y < self.height and self.map[y+1, x] != '%':
                     self.update_map(x, y+1)
             elif user_input == 'z':
                 if y > 0 and self.map[y-1, x] == self.prize:
                     self.load_prize()
                     self.update_map(x, y-1)
-                if y > 0 and self.map[y-1, x] == '-':
+                if y > 0 and self.map[y-1, x] != '%':
                     self.update_map(x, y-1)
 
-    def update_map(self, x, y, entity='player'):
-        if entity == 'player':
-            old_x, old_y = self.x, self.y
-            self.map[old_y, old_x] = '-'
-            self.x = x
-            self.y = y
-            self.map[y, x] = self.symbol
+            if counter % 1e1 == 0:
+                x_move = np.random.randint(-1, 2)
+                y_move = np.random.randint(-1, 2) if x_move == 0 else 0
+                if self.enemy_x + x_move > 0 \
+                and self.enemy_x + x_move < self.width \
+                and self.enemy_y + y_move > 0 \
+                and self.enemy_y + y_move < self.height \
+                and self.map[self.enemy_y + y_move, self.enemy_x + x_move] == '-':
+                    self.update_map(self.enemy_x + x_move, self.enemy_y + y_move, 'enemy')
+                counter = 0
+            counter +=1 
 
-        elif entity == 'enemy':
+    def update_map(self, x, y, entity='player'):
+        if entity == 'enemy':
             old_x, old_y = self.enemy_x, self.enemy_y
             self.map[old_y, old_x] = '-'
             self.enemy_x = x
             self.enemy_y = y
             self.map[y, x] = self.enemy
+            
+        if entity == 'player':
+            old_x, old_y = self.x, self.y
+            if x == self.enemy_x and y == self.enemy_y:
+                self.symbol = '!'
+                self.lost = True
+            self.map[old_y, old_x] = '-'
+            self.x = x
+            self.y = y
+            self.map[y, x] = self.symbol
+
+       
 
     def print_map(self, stdscr, opt='', offset=0):
         stdscr.clear()
@@ -231,5 +256,5 @@ class Game:
         stdscr.refresh()
 
 if __name__ == '__main__':
-    game = Game('maps/simple_map.txt')
+    game = Game('maps/simple_walls.txt')
     curses.wrapper(game.a_star)
