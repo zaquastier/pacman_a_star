@@ -17,7 +17,7 @@ class Node():
     def __eq__(self, other):
         return self.pos == other.pos
 
-def path_to_prize(start_pos, end_pos, map):
+def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
     open_list = []
     closed_list = []
 
@@ -58,6 +58,11 @@ def path_to_prize(start_pos, end_pos, map):
                 continue
             child.g = current_node.g + 1
             child.h = ((child.pos[0] - end_pos[0]) ** 2) + ((child.pos[1] - end_pos[1]) ** 2)
+
+            if avoid_pos:
+                eps = 1e-6
+                dist = ((child.pos[0] - avoid_pos[0]) ** 2) + ((child.pos[1] - avoid_pos[1]) ** 2)
+                child.h += 1 / (eps + dist)
             child.f = child.g + child.h
 
             for node in open_list:
