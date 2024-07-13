@@ -11,7 +11,9 @@ class Game:
         self.lost = False
 
     def a_star(self, stdscr):
+    # def a_star(self):
         counter = 0
+
         while True:
             char_pos = (self.x, self.y)
             prize_pos = (self.prize_x, self.prize_y)
@@ -21,24 +23,34 @@ class Game:
                 x, y = move[0], move[1]
 
                 self.print_map(stdscr)
+
                 while(self.lost):
                     continue
 
                 if self.map[self.y + y, self.x + x] == self.prize:
                     self.load_prize()
+
                 self.update_map(self.x + x, self.y + y)
                 
                 sleep(0.05)
+
                 if counter % 5 == 0:
-                    x_move = np.random.randint(-1, 2)
-                    y_move = np.random.randint(-1, 2) if x_move == 0 else 0
+                    print(counter)
+                    enemy_pos = (self.enemy_x, self.enemy_y)
+                    current_player_pos = (self.x, self.y)
+                    path_to_enemy = path_to_prize(enemy_pos, current_player_pos, self.map)[1:]
+
+                    x_move = path_to_enemy[0][0]
+                    y_move = path_to_enemy[0][1]
+
                     if self.enemy_x + x_move > 0 \
                     and self.enemy_x + x_move < self.width \
                     and self.enemy_y + y_move > 0 \
                     and self.enemy_y + y_move < self.height \
-                    and self.map[self.enemy_y + y_move, self.enemy_x + x_move] == '-':
+                    and self.map[self.enemy_y + y_move, self.enemy_x + x_move] != '%':
                         self.update_map(self.enemy_x + x_move, self.enemy_y + y_move, 'enemy')
                     counter = 0
+
                 counter +=1 
 
     def start(self, stdscr):
@@ -146,12 +158,15 @@ class Game:
             counter +=1 
 
     def update_map(self, x, y, entity='player'):
+        self.map[self.prize_y, self.prize_x] = self.prize
+
         if entity == 'enemy':
             old_x, old_y = self.enemy_x, self.enemy_y
             self.map[old_y, old_x] = '-'
             self.enemy_x = x
             self.enemy_y = y
             self.map[y, x] = self.enemy
+
             
         if entity == 'player':
             old_x, old_y = self.x, self.y
