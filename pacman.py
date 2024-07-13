@@ -7,8 +7,24 @@ from pathfinding import *
     
 class Game:
     def __init__(self, map_path: str):
+        self.prizes = []
         self.load(map_path)
         self.lost = False
+        self.won = False
+        self.mode = 'capture'
+
+    def dist(self, other):
+        return ((self.x - other[0]) ** 2) + ((self.y - other[1]) ** 2)
+
+    def closest_prize(self):
+        closest = self.prizes[0]
+        index = 0
+        for i in range(1, len(self.prizes)):
+            if self.dist(self.prizes[i]) < self.dist(closest):
+                index = i
+                closest = self.prizes[i]
+        return index, closest
+
 
     def a_star(self, stdscr):
     # def a_star(self):
@@ -16,25 +32,34 @@ class Game:
 
         while True:
 
+            self.print_map(stdscr)
+            
+            if self.won:
+                continue
             char_pos = (self.x, self.y)
-            prize_pos = (self.prize_x, self.prize_y)
+            prize_index, prize_pos = self.closest_prize()
             enemy_pos = (self.enemy_x, self.enemy_y)
 
-            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=enemy_pos)[1:]
 
+            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=enemy_pos)[1:]
+            # print(char_pos)
+            # print(self.prizes)
+            # print(prize_index, prize_pos)
+            # print(enemy_pos)
+            # print('\n')
             move = path[0]
             x, y = move[0], move[1]
-
-            self.print_map(stdscr)
 
             while(self.lost):
                 continue
 
             if self.map[self.y + y, self.x + x] == self.prize:
-                self.load_prize()
+                if self.mode == 'renew':
+                    self.load_prize(prize_index)
+                elif self.mode == 'capture':
+                    self.prizes.pop(prize_index)
 
             self.update_map(self.x + x, self.y + y)
-                
 
             if counter % 5 == 0:
                 current_player_pos = (self.x, self.y)
@@ -61,7 +86,7 @@ class Game:
         self.load_map(map_path)
         self.load_character()
         self.load_enemy()
-        self.load_prize()
+        self.init_prizes(n_prizes=2)
 
     def load_map(self, map_path: str):
         with open(map_path, 'r') as f:
@@ -98,14 +123,23 @@ class Game:
         self.enemy_y = y
         self.map[y, x] = self.enemy
 
-    def load_prize(self):
+    def init_prizes(self,n_prizes=1):
+        self.prize = 'A'
+        for _ in range(n_prizes):
+            while True:
+                x, y = np.random.randint(self.width), np.random.randint(self.height)
+                if self.map[y, x] == '-':
+                    break
+            self.prizes.append((x, y))
+            self.map[y, x] = self.prize
+
+    def load_prize(self, index):
         self.prize = 'A'
         while True:
             x, y = np.random.randint(self.width), np.random.randint(self.height)
             if self.map[y, x] == '-':
                 break
-        self.prize_x = x
-        self.prize_y = y
+        self.prizes[index] = (x, y)
         self.map[y, x] = self.prize
     
     def update_user(self, stdscr):
@@ -159,7 +193,12 @@ class Game:
             counter +=1 
 
     def update_map(self, x, y, entity='player'):
-        self.map[self.prize_y, self.prize_x] = self.prize
+        for prize_x, prize_y in self.prizes:
+            self.map[prize_y, prize_x] = self.prize
+
+        if not self.prizes:
+            self.symbol = 'W'
+            self.won = True
 
         if entity == 'enemy':
             old_x, old_y = self.enemy_x, self.enemy_y
@@ -181,8 +220,6 @@ class Game:
             self.x = x
             self.y = y
             self.map[y, x] = self.symbol
-
-       
 
     def print_map(self, stdscr, opt='', offset=0):
         stdscr.clear()
