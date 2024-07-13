@@ -2,24 +2,8 @@ import numpy as np
 import curses
 from time import sleep
 
-class Node():
-    def __init__(self, parent=None, x=None, y=None, move_x=0, move_y=0):
-        self.parent = parent
-        self.x = x
-        self.y = y
+from pathfinding import *
 
-        self.move_x = move_x
-        self.move_y = move_y
-
-        self.g = 0
-        self.h = 0
-        self.f = 0
-
-    def __str__(self):
-        return f'{self.x}, {self.y}'
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
     
 class Game:
     def __init__(self, map_path: str):
@@ -29,7 +13,10 @@ class Game:
     def a_star(self, stdscr):
         counter = 0
         while True:
-            path = self.path_to_prize()[1:]
+            char_pos = (self.x, self.y)
+            prize_pos = (self.prize_x, self.prize_y)
+            path = path_to_prize(char_pos, prize_pos, self.map)[1:]
+
             for i, move in enumerate(path):
                 x, y = move[0], move[1]
 
@@ -107,75 +94,6 @@ class Game:
         self.prize_x = x
         self.prize_y = y
         self.map[y, x] = self.prize
-
-    def path_to_prize(self):
-        open_list = []
-        closed_list = []
-
-        start_node = Node(x=self.x, y=self.y)
-
-        open_list.append(start_node)
-
-        while open_list:
-            current_node = self.min_node(open_list)
-            open_list = self.remove_node(open_list, current_node)
-            closed_list.append(current_node)
-
-            if current_node.x == self.prize_x and current_node.y == self.prize_y:
-                path = []
-                current = current_node
-                while current is not None:
-                    path.append((current.move_x, current.move_y))
-                    current = current.parent
-                return path[::-1]
-
-            children_node = self.adjacent_nodes(current_node)
-
-            for child in children_node:
-                if child in closed_list:
-                    continue
-                child.g = current_node.g + 1
-                child.h = ((child.x - self.prize_x) ** 2) + ((child.y - self.prize_y) ** 2)
-                child.f = child.g + child.h
-
-                for node in open_list:
-                    if child == node and child.g > node.g:
-                        continue
-
-                open_list.append(child)
-
-    def min_node(self, open_list):
-        node = open_list[0]
-        for n in open_list:
-            if node.f > n.f:
-                node = n
-
-        return node
-
-    def remove_node(self, open_list, node):
-        new_list = []
-        for n in open_list:
-            if not node.__eq__(n):
-                new_list.append(n)
-
-        return new_list
-
-    def adjacent_nodes(self, node):
-        nodes = []
-        x, y = node.x, node.y
-        if x > 0 and (self.map[y, x-1] == '-' or self.map[y, x-1] == self.prize):
-            nodes.append(Node(parent=node, x=x-1, y=y, move_x=-1, move_y=0))
-
-        if x < self.width and (self.map[y, x+1] == '-' or self.map[y, x+1] == self.prize):
-            nodes.append(Node(parent=node, x=x+1, y=y, move_x=1, move_y=0))
-
-        if y > 0 and (self.map[y-1, x] == '-' or self.map[y-1, x] == self.prize):
-            nodes.append(Node(parent=node, x=x, y=y-1, move_x=0, move_y=-1))
-
-        if y < self.height and (self.map[y+1, x] == '-' or self.map[y+1, x] == self.prize):
-            nodes.append(Node(parent=node, x=x, y=y+1, move_x=0, move_y=1))
-
-        return nodes
     
     def update_user(self, stdscr):
 
@@ -258,3 +176,4 @@ class Game:
 if __name__ == '__main__':
     game = Game('maps/simple_walls.txt')
     curses.wrapper(game.a_star)
+    # game.a_star()
