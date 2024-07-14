@@ -17,59 +17,70 @@ class Node():
     def __eq__(self, other):
         return self.pos == other.pos
 
-def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
-    open_list = []
-    closed_list = []
+def path_to_prize(start_pos, goals, map, avoid_pos=None):
 
-    start_node = Node(pos=start_pos)
+    paths = []
 
-    open_list.append(start_node)
+    for goal in goals:
+        open_list = []
+        closed_list = []
 
-    while open_list:
-        current_node = min_node(open_list)
-        open_list = remove_node(open_list, current_node)
-        closed_list.append(current_node)
-        # print(current_node, end_pos)
-        # print('open')
-        # for node in open_list:
-        #     print(node, sep=', ')
-        # print('closed')
-        # for node in closed_list:
-        #     print(node, sep=', ')
+        start_node = Node(pos=start_pos)
 
-        if current_node.pos == end_pos:
-            # print("here")
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.move)
-                current = current.parent
-            return path[::-1]
+        open_list.append(start_node)
 
-        children_node = adjacent_nodes(current_node, map)
-        # print('children')
-        # for node in children_node:
-        #     print(node, sep=', ')
-        # print('\n')
-        # print('\n')
 
-        for child in children_node:
-            if child in closed_list:
-                continue
-            child.g = current_node.g + 1
-            child.h = ((child.pos[0] - end_pos[0]) ** 2) + ((child.pos[1] - end_pos[1]) ** 2)
+        while open_list:
+            current_node = min_node(open_list)
+            open_list = remove_node(open_list, current_node)
+            closed_list.append(current_node)
+            # print(current_node, end_pos)
+            # print('open')
+            # for node in open_list:
+            #     print(node, sep=', ')
+            # print('closed')
+            # for node in closed_list:
+            #     print(node, sep=', ')
 
-            if avoid_pos:
-                eps = 1e-6
-                dist = ((child.pos[0] - avoid_pos[0]) ** 2) + ((child.pos[1] - avoid_pos[1]) ** 2)
-                child.h += 1 / (eps + dist)
-            child.f = child.g + child.h
+            if current_node.pos == goal:
+                # print("here")
+                path = []
+                current = current_node
+                while current is not None:
+                    path.append(current.move)
+                    current = current.parent
+                paths.append(path[::-1])
 
-            for node in open_list:
-                if child == node and child.g > node.g:
+            children_node = adjacent_nodes(current_node, map)
+            # print('children')
+            # for node in children_node:
+            #     print(node, sep=', ')
+            # print('\n')
+            # print('\n')
+
+            for child in children_node:
+                if child in closed_list:
                     continue
+                child.g = current_node.g + 1
+                child.h = ((child.pos[0] - goal[0]) ** 2) + ((child.pos[1] - goal[1]) ** 2)
 
-            open_list.append(child)
+                if avoid_pos:
+                    eps = 1e-6
+                    dist = ((child.pos[0] - avoid_pos[0]) ** 2) + ((child.pos[1] - avoid_pos[1]) ** 2)
+                    child.h += 1 / (eps + dist)
+                child.f = child.g + child.h
+
+                for node in open_list:
+                    if child == node and child.g > node.g:
+                        continue
+
+                open_list.append(child)
+
+    shortest_path = paths[0]
+    for i in range(1, len(paths)):
+        if len(paths[i]) < len(shortest_path):
+            shortest_path = paths[i]
+    return shortest_path
 
 def min_node(open_list):
     node = open_list[0]

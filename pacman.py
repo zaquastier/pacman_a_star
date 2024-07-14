@@ -8,9 +8,11 @@ from pathfinding import *
 class Game:
     def __init__(self, map_path: str):
         self.prizes = []
+        self.n_prizes = 10
         self.load(map_path)
         self.lost = False
         self.won = False
+        # self.mode = 'renew'
         self.mode = 'capture'
 
     def dist(self, other):
@@ -34,14 +36,17 @@ class Game:
 
             self.print_map(stdscr)
             
-            if self.won:
+            while self.won:
                 continue
+            while(self.lost):
+                continue
+
             char_pos = (self.x, self.y)
-            prize_index, prize_pos = self.closest_prize()
+            prize_index, prize_pos = self.closest_prize() # shouldnt be closest but the one with lowest distance
             enemy_pos = (self.enemy_x, self.enemy_y)
 
 
-            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=enemy_pos)[1:]
+            path = path_to_prize(char_pos, self.prizes, self.map, avoid_pos=enemy_pos)[1:]
             # print(char_pos)
             # print(self.prizes)
             # print(prize_index, prize_pos)
@@ -50,8 +55,6 @@ class Game:
             move = path[0]
             x, y = move[0], move[1]
 
-            while(self.lost):
-                continue
 
             if self.map[self.y + y, self.x + x] == self.prize:
                 if self.mode == 'renew':
@@ -63,7 +66,7 @@ class Game:
 
             if counter % 5 == 0:
                 current_player_pos = (self.x, self.y)
-                path_to_enemy = path_to_prize(enemy_pos, current_player_pos, self.map)[1:]
+                path_to_enemy = path_to_prize(enemy_pos, [current_player_pos], self.map)[1:]
 
                 x_move = path_to_enemy[0][0]
                 y_move = path_to_enemy[0][1]
@@ -77,7 +80,7 @@ class Game:
                 counter = 0
 
             counter +=1 
-            sleep(0.05)
+            sleep(0.005)
 
     def start(self, stdscr):
         self.update_user(stdscr)
@@ -86,7 +89,7 @@ class Game:
         self.load_map(map_path)
         self.load_character()
         self.load_enemy()
-        self.init_prizes(n_prizes=2)
+        self.init_prizes()
 
     def load_map(self, map_path: str):
         with open(map_path, 'r') as f:
@@ -123,9 +126,9 @@ class Game:
         self.enemy_y = y
         self.map[y, x] = self.enemy
 
-    def init_prizes(self,n_prizes=1):
+    def init_prizes(self,):
         self.prize = 'A'
-        for _ in range(n_prizes):
+        for _ in range(self.n_prizes):
             while True:
                 x, y = np.random.randint(self.width), np.random.randint(self.height)
                 if self.map[y, x] == '-':
