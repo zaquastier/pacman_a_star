@@ -4,16 +4,18 @@ from time import sleep
 
 from pathfinding import *
 
-    
+
 class Game:
     def __init__(self, map_path: str):
         self.prizes = []
-        self.n_prizes = 10
+        self.ennemies = []
+        self.n_prizes = 1
+        self.n_enemies = 2
         self.load(map_path)
         self.lost = False
         self.won = False
-        # self.mode = 'renew'
-        self.mode = 'capture'
+        self.mode = 'renew'
+        # self.mode = 'capture'
 
     def dist(self, other):
         return ((self.x - other[0]) ** 2) + ((self.y - other[1]) ** 2)
@@ -46,7 +48,7 @@ class Game:
             enemy_pos = (self.enemy_x, self.enemy_y)
 
 
-            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=enemy_pos)[1:]
+            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=self.ennemies)[1:]
             # print(char_pos)
             # print(self.prizes)
             # print(prize_index, prize_pos)
@@ -66,18 +68,21 @@ class Game:
 
             if counter % 5 == 0:
                 current_player_pos = (self.x, self.y)
-                path_to_enemy = path_to_prize(enemy_pos, current_player_pos, self.map)[1:]
 
-                x_move = path_to_enemy[0][0]
-                y_move = path_to_enemy[0][1]
+                for i, enemy_pos in enumerate(self.ennemies):
+                    path_to_enemy = path_to_prize(enemy_pos, current_player_pos, self.map)[1:]
 
-                if self.enemy_x + x_move > 0 \
-                and self.enemy_x + x_move < self.width \
-                and self.enemy_y + y_move > 0 \
-                and self.enemy_y + y_move < self.height \
-                and self.map[self.enemy_y + y_move, self.enemy_x + x_move] != '%':
-                    self.update_map(self.enemy_x + x_move, self.enemy_y + y_move, 'enemy')
-                counter = 0
+                    x_move = path_to_enemy[0][0]
+                    y_move = path_to_enemy[0][1]
+
+                    if self.ennemies[i][0] + x_move > 0 \
+                    and self.ennemies[i][0] + x_move < self.width \
+                    and self.ennemies[i][1] + y_move > 0 \
+                    and self.ennemies[i][1] + y_move < self.height \
+                    and self.map[self.ennemies[i][1] + y_move, self.ennemies[i][0] + x_move] != '%':
+                        self.update_map(self.ennemies[i][0] + x_move, self.ennemies[i][1] + y_move, 'enemy')
+                    counter = 0
+                    
 
             counter +=1 
             sleep(0.05)
@@ -88,7 +93,7 @@ class Game:
     def load(self, map_path):
         self.load_map(map_path)
         self.load_character()
-        self.load_enemy()
+        self.load_enemies()
         self.init_prizes()
 
     def load_map(self, map_path: str):
@@ -116,15 +121,17 @@ class Game:
         self.y = y
         self.map[y, x] = self.symbol
 
-    def load_enemy(self):
+    def load_enemies(self):
         self.enemy = '#'
-        while True:
-            x, y = np.random.randint(self.width), np.random.randint(self.height)
-            if self.map[y, x] == '-':
-                break
-        self.enemy_x = x
-        self.enemy_y = y
-        self.map[y, x] = self.enemy
+        for _ in range(self.n_enemies):
+            while True:
+                x, y = np.random.randint(self.width), np.random.randint(self.height)
+                if self.map[y, x] == '-':
+                    break
+            self.enemy_x = x
+            self.enemy_y = y
+            self.ennemies.append((x, y))
+            self.map[y, x] = self.enemy
 
     def init_prizes(self,):
         self.prize = 'A'
