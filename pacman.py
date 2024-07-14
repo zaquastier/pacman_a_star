@@ -46,7 +46,7 @@ class Game:
             enemy_pos = (self.enemy_x, self.enemy_y)
 
 
-            path = path_to_prize(char_pos, self.prizes, self.map, avoid_pos=enemy_pos)[1:]
+            path = path_to_prize(char_pos, prize_pos, self.map, avoid_pos=enemy_pos)[1:]
             # print(char_pos)
             # print(self.prizes)
             # print(prize_index, prize_pos)
@@ -66,7 +66,7 @@ class Game:
 
             if counter % 5 == 0:
                 current_player_pos = (self.x, self.y)
-                path_to_enemy = path_to_prize(enemy_pos, [current_player_pos], self.map)[1:]
+                path_to_enemy = path_to_prize(enemy_pos, current_player_pos, self.map)[1:]
 
                 x_move = path_to_enemy[0][0]
                 y_move = path_to_enemy[0][1]
@@ -80,7 +80,7 @@ class Game:
                 counter = 0
 
             counter +=1 
-            sleep(0.005)
+            sleep(0.05)
 
     def start(self, stdscr):
         self.update_user(stdscr)
