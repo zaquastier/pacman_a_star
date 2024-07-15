@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 from config import *
 
@@ -7,6 +8,7 @@ class Entity():
         self.pos = pos
         self.symbol = symbol
         self.category = category
+        self.power_timer = time()
 
     def __eq__(self, other):
         return other.pos[0] == self.pos[0] and other.pos[1] == self.pos[1]
@@ -23,6 +25,8 @@ class Map():
         self.player_id = None
         self.entities = {} 
         self.entities_counter = 0 # for ID
+        self.powered = False
+        self.dur = 20
 
     def load_map(self, map_path: str):
         with open(map_path, 'r') as f:
@@ -66,6 +70,19 @@ class Map():
         if not is_valid_move:
             return status
 
+        for index in self.get_entity_category('house'): # in case enemy leaves price
+            house = self.entities[index]
+            x, y = house.pos
+            self.map[y, x] = house.symbol
+        for index in self.get_entity_category('prize'): # in case enemy leaves price
+            prize = self.entities[index]
+            x, y = prize.pos
+            self.map[y, x] = prize.symbol
+        for index in self.get_entity_category('power'): # in case enemy leaves price
+            prize = self.entities[index]
+            x, y = prize.pos
+            self.map[y, x] = prize.symbol
+
         entity = self.entities[entity_id]
         current_pos = entity.pos
 
@@ -76,12 +93,33 @@ class Map():
 
             self.move(entity_id, current_pos, new_pos)
 
+
+        if entity.category == 'scared':
+
+            player_pos = self.entities[self.player_id].pos
+            if new_pos == player_pos:
+                del self.entities[entity_id]
+                return EAT
+            
+            for index in self.get_entity_category('house'):
+                house = self.entities[index]
+                if new_pos == house.pos:
+                    self.reactivate(entity_id)
+
+            else:
+                self.move(entity_id, current_pos, new_pos)
+
             
         if entity.category == 'player':
             for index in self.get_entity_category('enemy'):
                 enemy = self.entities[index]
                 if self.lost(new_pos, enemy.pos):
                     return LOST
+            for index in self.get_entity_category('scared'):
+                scared = self.entities[index]
+                if new_pos == scared.pos:
+                    del self.entities[index]
+                    return EAT
             
             self.move(entity_id, current_pos, new_pos)
 
@@ -92,15 +130,51 @@ class Map():
                     if not self.get_entity_category('prize'):
                         return self.won()
                     return SCORE
+                
+            for index in self.get_entity_category('power'):
+                power = self.entities[index]
+                if new_pos == power.pos:
+                    del self.entities[index]
+                    return self.power()
         
 
-
-        for index in self.get_entity_category('prize'): # in case enemy leaves price
-            prize = self.entities[index]
-            x, y = prize.pos
-            self.map[y, x] = prize.symbol
+        if self.powered and time() - self.time > self.dur:
+            print(time())
+            print(self.time)
+            print(self.dur)
+            self.reactivate_enemies()
 
         return OK
+
+    def power(self):
+        self.powered = True
+        self.time = time()
+        enemy_ids = self.get_entity_category('enemy')
+        for enemy_id in enemy_ids:
+            enemy = self.entities[enemy_id]
+            scared = Entity(enemy.pos, '&', category='scared')
+            x, y = enemy.pos
+            self.map[y, x] = '&'
+            self.entities[enemy_id] = scared
+        return POWER
+    
+    def reactivate(self, scared_id):
+        scared = self.entities[scared_id]
+        enemy = Entity(scared.pos, '#', category='enemy')
+        x, y = scared.pos
+        self.map[y, x] = '#'
+        self.entities[scared_id] = enemy
+    
+    def reactivate_enemies(self):
+        self.powered = False
+        scared_ids = self.get_entity_category('scared')
+        for scared_id in scared_ids:
+            scared = self.entities[scared_id]
+            enemy = Entity(scared.pos, '#', category='enemy')
+            x, y = scared.pos
+            self.map[y, x] = '#'
+            self.entities[scared_id] = enemy
+        return NORMAL
 
     def get_entity_category(self, category):
         entities = []
@@ -142,19 +216,25 @@ class Map():
         is_within_map = new_pos[0] > 0 and new_pos[0] < self.width and new_pos[1] > 0 and new_pos[1] < self.height
         is_case_valid = self.map[new_pos[1], new_pos[0]] != '%'
 
+        if entity.category == 'enemy':
+            is_case_valid &= self.map[new_pos[1], new_pos[0]] != entity.symbol
+
+        if entity.category == 'scared':
+            is_case_valid &= self.map[new_pos[1], new_pos[0]] != entity.symbol
+
         return is_within_map and is_case_valid, new_pos
 
-    def closest_prize(self):
-        player = self.entities[self.player_id]
-        prize_ids = self.get_entity_category('prize')
-        index = prize_ids[0]
-        closest_prize = self.entities[index]
-        for prize_id in prize_ids:
-            prize = self.entities[prize_id]
-            if player.dist(prize) < player.dist(closest_prize):
-                index = prize_id
-                closest_prize = prize
-        return index, closest_prize
+    def closest_category(self, entity_id, category):
+        entity = self.entities[entity_id]
+        ids = self.get_entity_category(category)
+        index = ids[0]
+        closest = self.entities[index]
+        for id in ids:
+            other = self.entities[id]
+            if entity.dist(other) < entity.dist(closest):
+                index = id
+                closest = other
+        return index, closest
     
     def get_player(self):
         return self.player_id, self.entities[self.player_id]
