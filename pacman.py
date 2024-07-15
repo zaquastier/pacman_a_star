@@ -5,22 +5,22 @@ from time import sleep
 from pathfinding import *
 from map import *
 
-DEBUG = True
+DEBUG = False
 
 class Game:
     def __init__(self, map_path: str):
         self.prizes = []
         self.ennemies = []
-        self.n_prizes = 2
-        self.n_enemies = 2
+        self.n_prizes = 100
+        self.n_enemies = 3
         self.n_powers = 1
         self.map_path = map_path
         self.load(map_path)
         self.lost = False
         self.won = False
-        self.mode = 'renew'
+        self.mode = 'capture'
         self.status = OK
-        # self.mode = 'capture'
+        self.player = 'auto'
 
 
 
@@ -28,21 +28,18 @@ class Game:
         counter = 0
 
         while True:
-            
-            for k, v in self.map.entities.items():
-                print(k, v)
             self.map.print_map(stdscr)
             
-            while self.status == WON or self.status == LOST:
+            while self.status == WON:
                 continue
             # if self.status == WON:
             #     self.load('maps/simple_map.txt')
             
-            # if self.status == LOST:
-            #     self.load(self.map_path)
+            if self.status == LOST:
+                self.load(self.map_path)
 
             player_id, player = self.map.get_player()
-            prize_id, closest_prize = self.map.closest_category(player_id, 'power')
+            prize_id, closest_prize = self.map.closest_to_eat(player_id)
             enemies = []
             enemy_ids = self.map.get_entity_category('enemy')
             for enemy_id in enemy_ids:
@@ -51,18 +48,34 @@ class Game:
             enemy_pos = []
             for enemy in enemies:
                 enemy_pos.append(enemy.pos)
+            
+            if self.player == 'auto':
+                path = path_to_prize(player.pos, closest_prize.pos, self.map, avoid_pos=enemy_pos)[1:]
+                if path:
+                    move = path[0]
+                else:
+                    move = (0, 0)
 
-            path = path_to_prize(player.pos, closest_prize.pos, self.map, avoid_pos=enemy_pos)[1:]
-
-            move = path[0]
+            elif self.player == 'manual':
+                user_input = stdscr.getkey()
+                if user_input == 'p':
+                    break
+                elif user_input == 'q':
+                    move = (-1, 0)
+                elif user_input == 'd':
+                    move = (1, 0)
+                elif user_input == 's':
+                    move = (0, 1)
+                elif user_input == 'z':
+                    move = (0, -1)
 
             self.status = self.map.update_map(player_id, move)
 
-            if self.status == POWER:
+            if self.status == SCORE:
                 if self.mode == 'renew':
-                    self.map.add_entity('power', 'O', prize_id)
+                    self.map.add_entity('prize', '.', prize_id)
 
-            if counter % 3 == 0:
+            if counter % 4 == 0:
                 for enemy_id, enemy in zip(enemy_ids, enemies):
                     path_to_player = path_to_prize(enemy.pos, player.pos, self.map)[1:]
                     enemy_move = path_to_player[0]
@@ -89,7 +102,7 @@ class Game:
                 counter = 0
 
             counter +=1 
-            sleep(0.25)
+            sleep(0.2)
 
     def start(self, stdscr):
         self.update_user(stdscr)
@@ -101,9 +114,56 @@ class Game:
         for _ in range(self.n_enemies):
             self.map.add_entity('enemy', '#')
         for _ in range(self.n_prizes):
-            self.map.add_entity('prize', 'A')
+            self.map.add_entity('prize', '.')
         for _ in range(self.n_powers):
             self.map.add_entity('power', 'O')
+
+    def update_user(self, stdscr):
+        counter = 0
+        while True:
+            self.print_map(stdscr)
+            while(self.lost):
+                continue
+            x, y = self.x, self.y
+            
+            user_input = stdscr.getkey()
+            if user_input == 'p':
+                break
+            elif user_input == 'q':
+                if x > 0 and self.map[y, x-1] == self.prize:
+                    self.update_map(x-1, y)
+                    self.load_prize()
+                if x > 0 and self.map[y, x-1] != '%':
+                    self.update_map(x-1, y)
+            elif user_input == 'd':
+                if x < self.width and self.map[y, x+1] == self.prize:
+                    self.update_map(x+1, y)
+                    self.load_prize()
+                if x < self.width and self.map[y, x+1] != '%':
+                    self.update_map(x+1, y)
+            elif user_input == 's':
+                if y < self.height and self.map[y+1, x] == self.prize:
+                    self.load_prize()
+                    self.update_map(x, y+1)
+                if y < self.height and self.map[y+1, x] != '%':
+                    self.update_map(x, y+1)
+            elif user_input == 'z':
+                if y > 0 and self.map[y-1, x] == self.prize:
+                    self.load_prize()
+                    self.update_map(x, y-1)
+                if y > 0 and self.map[y-1, x] != '%':
+                    self.update_map(x, y-1)
+            if counter % 1e1 == 0:
+                x_move = np.random.randint(-1, 2)
+                y_move = np.random.randint(-1, 2) if x_move == 0 else 0
+                if self.enemy_x + x_move > 0 \
+                and self.enemy_x + x_move < self.width \
+                and self.enemy_y + y_move > 0 \
+                and self.enemy_y + y_move < self.height \
+                and self.map[self.enemy_y + y_move, self.enemy_x + x_move] == '-':
+                    self.update_map(self.enemy_x + x_move, self.enemy_y + y_move, 'enemy')
+                counter = 0
+            counter +=1 
 
 if __name__ == '__main__':
     game = Game('maps/simple_walls.txt')
