@@ -39,7 +39,7 @@ class Map():
         self.width = width
         self.height = height
 
-    def add_entity(self, category, symbol):
+    def add_entity(self, category, symbol, id=None):
         while True:
             x, y = np.random.randint(self.width), np.random.randint(self.height)
             if self.map[y, x] == '-':
@@ -47,6 +47,8 @@ class Map():
         self.map[y, x] = symbol
 
         entity = Entity((x, y), symbol, category)
+        if id:
+            index = id
         index = str(self.entities_counter)
         self.entities_counter += 1
         self.entities[index] = entity
