@@ -88,20 +88,20 @@ def remove_node(open_list, node):
     return new_list
 
 def adjacent_nodes(node, map): # could pass only adjacent cases
-    height = len(map)
-    width = len(map[0])
+    height = map.height
+    width = map.width
     nodes = []
     x, y = node.pos[0], node.pos[1]
-    if x > 0 and map[y, x-1] != '%':
+    if x > 0 and map.map[y, x-1] != '%':
         nodes.append(Node(parent=node, pos=(x-1, y), move=(-1, 0)))
 
-    if x < width and map[y, x+1] != '%':
+    if x < width and map.map[y, x+1] != '%':
         nodes.append(Node(parent=node, pos=(x+1, y), move=(1, 0)))
 
-    if y > 0 and map[y-1, x] != '%':
+    if y > 0 and map.map[y-1, x] != '%':
         nodes.append(Node(parent=node, pos=(x, y-1), move=(0, -1)))
 
-    if y < height and map[y+1, x] != '%':
+    if y < height and map.map[y+1, x] != '%':
         nodes.append(Node(parent=node, pos=(x, y+1), move=(0, 1)))
 
     return nodes

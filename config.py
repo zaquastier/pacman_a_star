@@ -1,1 +1,5 @@
 PRIZE='A'
+WON=1
+OK=2
+SCORE=3
+LOST=4
