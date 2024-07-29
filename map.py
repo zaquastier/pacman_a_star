@@ -62,20 +62,36 @@ class Map():
 
         return OK
     
-    def show_idles(self):
-        idle_categories = ['house', 'prize', 'power']
-        idle_ids = []
-        for category in idle_categories:
-            idle_ids += self.get_entity_category(category)
-        for idle_id in idle_ids:
-            idle = self.entities[idle_id]
-            occupied = False
-            for entity_id, entity in self.entities.items():
-                if entity.pos == idle.pos and entity_id != idle_id:
-                    occupied = True
-            if not occupied:
-                x, y = idle.pos
-                self.map[y, x] = idle.symbol
+    def closest_to_eat(self, player_id, avoid_category=None, eps=1e-6):
+        player = self.entities[player_id]
+
+        categories = ['prize', 'power', 'scared']
+        ids = [] 
+        for category in categories:
+            ids += self.get_entity_category(category)
+
+        avoid_ids = self.get_entity_category(avoid_category)
+
+        index = ids[0]
+        closest = self.entities[index]
+        dist_to_closest = player.dist(closest)
+        for avoid_id in avoid_ids:
+                avoid_entity = self.entities[avoid_id]
+                dist_to_closest += 20 / (avoid_entity.dist(closest) + eps)
+
+        for id in ids:
+            other = self.entities[id]
+            dist_to_other = player.dist(other)
+            if other.category == 'scared':
+                dist_to_other /= 10
+            for avoid_id in avoid_ids:
+                avoid_entity = self.entities[avoid_id]
+                dist_to_other += 20 / (avoid_entity.dist(other) + eps)
+            if dist_to_other < dist_to_closest:
+                index = id
+                closest = other
+                dist_to_closest = dist_to_other
+        return index, closest
         
     def update_map(self, entity_id, move):
         is_valid_move, new_pos = self.is_valid(entity_id, move)
@@ -150,6 +166,21 @@ class Map():
             self.reactivate_enemies()
 
         return OK
+    
+    def show_idles(self):
+        idle_categories = ['house', 'prize', 'power']
+        idle_ids = []
+        for category in idle_categories:
+            idle_ids += self.get_entity_category(category)
+        for idle_id in idle_ids:
+            idle = self.entities[idle_id]
+            occupied = False
+            for entity_id, entity in self.entities.items():
+                if entity.pos == idle.pos and entity_id != idle_id:
+                    occupied = True
+            if not occupied:
+                x, y = idle.pos
+                self.map[y, x] = idle.symbol
 
     def power(self):
         self.powered = True
@@ -228,62 +259,9 @@ class Map():
             is_case_valid &= self.map[new_pos[1], new_pos[0]] != entity.symbol
 
         return is_within_map and is_case_valid, new_pos
-
-    def closest_category(self, entity_id, category, avoid_category=None):
-        entity = self.entities[entity_id]
-        ids = self.get_entity_category(category)
-        index = ids[0]
-        closest = self.entities[index]
-        for id in ids:
-            other = self.entities[id]
-            if entity.dist(other) < entity.dist(closest):
-                index = id
-                closest = other
-        return index, closest
-    
-    def closest_to_eat(self, player_id, avoid_category=None, eps=1e-6):
-        player = self.entities[player_id]
-
-        categories = ['prize', 'power', 'scared']
-        ids = [] 
-        for category in categories:
-            ids += self.get_entity_category(category)
-
-        avoid_ids = self.get_entity_category(avoid_category)
-
-        index = ids[0]
-        closest = self.entities[index]
-        dist_to_closest = player.dist(closest)
-        for avoid_id in avoid_ids:
-                avoid_entity = self.entities[avoid_id]
-                dist_to_closest += 20 / (avoid_entity.dist(closest) + eps)
-
-        for id in ids:
-            other = self.entities[id]
-            dist_to_other = player.dist(other)
-            if other.category == 'scared':
-                dist_to_other /= 10
-            for avoid_id in avoid_ids:
-                avoid_entity = self.entities[avoid_id]
-                dist_to_other += 20 / (avoid_entity.dist(other) + eps)
-            if dist_to_other < dist_to_closest:
-                index = id
-                closest = other
-                dist_to_closest = dist_to_other
-        return index, closest
-
     
     def get_player(self):
         return self.player_id, self.entities[self.player_id]
     
-    def print_map(self, stdscr=None, opt='', offset=0):
-        if stdscr:
-            stdscr.clear()
-            stdscr.addstr(0, 0, opt)
-            for y, line in enumerate(self.map):
-                line_str = ''.join(line) if isinstance(line, np.ndarray) else line
-                stdscr.addstr(y + offset, 0, line_str)
-            stdscr.refresh()
-        else:
-            for line in self.map:
-                print(''.join(line))
+    def get_house(self):
+        return self.entities[self.get_entity_category('house')[0]]

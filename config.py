@@ -1,3 +1,11 @@
+N_PRIZES=10
+N_ENEMIES=20
+N_POWERS=0
+
+# sleep_between_frames
+SLEEP=0.2
+
+# status codes
 PRIZE='A'
 WON=1
 OK=2

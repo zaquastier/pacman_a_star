@@ -1,5 +1,4 @@
 from config import *
-from time import sleep 
 
 class Node():
     def __init__(self, parent=None, pos=None, move=None):
@@ -30,16 +29,8 @@ def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
         current_node = min_node(open_list)
         open_list = remove_node(open_list, current_node)
         closed_list.append(current_node)
-        # print(current_node, end_pos)
-        # print('open')
-        # for node in open_list:
-        #     print(node, sep=', ')
-        # print('closed')
-        # for node in closed_list:
-        #     print(node, sep=', ')
 
         if current_node.pos == end_pos:
-            # print("here")
             path = []
             current = current_node
             while current is not None:
@@ -48,11 +39,6 @@ def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
             return path[::-1]
 
         children_node = adjacent_nodes(current_node, map)
-        # print('children')
-        # for node in children_node:
-        #     print(node, sep=', ')
-        # print('\n')
-        # print('\n')
 
         for child in children_node:
             if child in closed_list:
