@@ -11,9 +11,9 @@ class Game:
     def __init__(self, map_path: str):
         self.prizes = []
         self.ennemies = []
-        self.n_prizes = 100
-        self.n_enemies = 3
-        self.n_powers = 1
+        self.n_prizes = 20
+        self.n_enemies = 8
+        self.n_powers = 10
         self.map_path = map_path
         self.load(map_path)
         self.lost = False
@@ -21,25 +21,39 @@ class Game:
         self.mode = 'capture'
         self.status = OK
         self.player = 'auto'
+        self.score = 0
 
+    def print_map(self, stdscr=None, opt='', offset=0):
+        if stdscr:
+            stdscr.clear()
+            stdscr.addstr(0, 0, opt)
+            for y, line in enumerate(self.map.map):
+                line_str = ''.join(line) if isinstance(line, np.ndarray) else line
+                stdscr.addstr(y + offset, 0, line_str)
+            stdscr.addstr(y + offset + 1, 0, f'SCORE: {self.score}')
+            stdscr.refresh()
+        else:
+            for line in self.map:
+                print(''.join(line))
+            print(f'SCORE: {self.score}')
 
 
     def a_star(self, stdscr=None):
         counter = 0
 
         while True:
-            self.map.print_map(stdscr)
+            self.print_map(stdscr)
             
-            while self.status == WON:
+            while self.status == WON or self.status == LOST:
                 continue
             # if self.status == WON:
             #     self.load('maps/simple_map.txt')
             
-            if self.status == LOST:
+            if self.status == LOST or self.status == WON:
                 self.load(self.map_path)
 
             player_id, player = self.map.get_player()
-            prize_id, closest_prize = self.map.closest_to_eat(player_id)
+            prize_id, closest_prize = self.map.closest_to_eat(player_id, avoid_category='enemy')
             enemies = []
             enemy_ids = self.map.get_entity_category('enemy')
             for enemy_id in enemy_ids:
@@ -71,6 +85,10 @@ class Game:
 
             self.status = self.map.update_map(player_id, move)
 
+            if self.status == SCORE: self.score += 1
+            if self.status == POWER: self.score += 5
+            if self.status == EAT: self.score += 10
+
             if self.status == SCORE:
                 if self.mode == 'renew':
                     self.map.add_entity('prize', '.', prize_id)
@@ -91,8 +109,10 @@ class Game:
 
                 for scared_id, scared in zip(scared_ids, scareds):
                     house_id, closest_house = self.map.closest_category(scared_id, 'house')
-                    path_to_house = path_to_prize(scared.pos, closest_house.pos, self.map)[1:]
-                    scared_move = path_to_house[0]
+                    path_to_house = path_to_prize(scared.pos, closest_house.pos, self.map, avoid_pos=[player.pos])[1:]
+                    scared_move = (0, 0)
+                    if path_to_house:
+                        scared_move = path_to_house[0]
                     scared_status = self.map.update_map(scared_id, scared_move)
 
                     if scared_status == LOST:
@@ -102,7 +122,7 @@ class Game:
                 counter = 0
 
             counter +=1 
-            sleep(0.2)
+            sleep(0.3)
 
     def start(self, stdscr):
         self.update_user(stdscr)
@@ -166,7 +186,7 @@ class Game:
             counter +=1 
 
 if __name__ == '__main__':
-    game = Game('maps/simple_walls.txt')
+    game = Game('maps/map1.txt')
     if DEBUG == True:
         game.a_star()
     else:

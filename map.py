@@ -130,10 +130,10 @@ class Map():
             for index in self.get_entity_category('prize'):
                 prize = self.entities[index]
                 if new_pos == prize.pos:
+                    self.move(entity_id, current_pos, new_pos)
                     del self.entities[index]
                     if not self.get_entity_category('prize'):
                         return self.won()
-                    self.move(entity_id, current_pos, new_pos)
                     return SCORE
             
                             
@@ -229,7 +229,7 @@ class Map():
 
         return is_within_map and is_case_valid, new_pos
 
-    def closest_category(self, entity_id, category):
+    def closest_category(self, entity_id, category, avoid_category=None):
         entity = self.entities[entity_id]
         ids = self.get_entity_category(category)
         index = ids[0]
@@ -241,19 +241,35 @@ class Map():
                 closest = other
         return index, closest
     
-    def closest_to_eat(self, player_id):
+    def closest_to_eat(self, player_id, avoid_category=None, eps=1e-6):
         player = self.entities[player_id]
-        categories = ['prize', 'scared', 'power']
-        ids = []
+
+        categories = ['prize', 'power', 'scared']
+        ids = [] 
         for category in categories:
             ids += self.get_entity_category(category)
+
+        avoid_ids = self.get_entity_category(avoid_category)
+
         index = ids[0]
         closest = self.entities[index]
+        dist_to_closest = player.dist(closest)
+        for avoid_id in avoid_ids:
+                avoid_entity = self.entities[avoid_id]
+                dist_to_closest += 20 / (avoid_entity.dist(closest) + eps)
+
         for id in ids:
             other = self.entities[id]
-            if player.dist(other) < player.dist(closest):
+            dist_to_other = player.dist(other)
+            if other.category == 'scared':
+                dist_to_other /= 10
+            for avoid_id in avoid_ids:
+                avoid_entity = self.entities[avoid_id]
+                dist_to_other += 20 / (avoid_entity.dist(other) + eps)
+            if dist_to_other < dist_to_closest:
                 index = id
                 closest = other
+                dist_to_closest = dist_to_other
         return index, closest
 
     

@@ -1,4 +1,5 @@
 from config import *
+from time import sleep 
 
 class Node():
     def __init__(self, parent=None, pos=None, move=None):
