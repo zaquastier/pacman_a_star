@@ -1,5 +1,5 @@
 # RUN WITH CURSES
-CURSES = False
+CURSES = True
 
 # Number of prizes on the map
 N_PRIZES = 10
