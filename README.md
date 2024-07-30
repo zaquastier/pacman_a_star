@@ -39,7 +39,9 @@ The game runs at a certain frames-per-second rate, with the player moving at eac
 
 Install the required Python packages by running:
 
-``` pip install -r requirements.txt ```
+```
+pip install -r requirements.txt 
+```
 
 ### Running the Game
 
