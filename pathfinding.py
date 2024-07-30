@@ -18,6 +18,18 @@ class Node():
         return self.pos == other.pos
 
 def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
+    """
+        Find the path from start_pos to end_pos on the map, avoiding positions in list avoid_pos if provided.
+        
+        Args:
+        start_pos (tuple): The starting position on the map.
+        end_pos (tuple): The target position on the map.
+        map (Map): The map object containing the layout.
+        avoid_pos (list of positions, optional): Positions to avoid during pathfinding.
+        
+        Returns:
+        list: A list of moves representing the path from start_pos to end_pos.
+    """
     open_list = []
     closed_list = []
 
@@ -60,6 +72,15 @@ def path_to_prize(start_pos, end_pos, map, avoid_pos=None):
             open_list.append(child)
 
 def min_node(open_list):
+    """
+        Find the node with the smallest f value in the open list.
+        
+        Args:
+        open_list (list): The list of nodes to evaluate.
+        
+        Returns:
+        Node: The node with the smallest f value.
+    """
     node = open_list[0]
     for n in open_list:
         if node.f > n.f:
@@ -68,6 +89,16 @@ def min_node(open_list):
     return node
 
 def remove_node(open_list, node):
+    """
+        Remove a node from the open list.
+        
+        Args:
+        open_list (list): The list of nodes to evaluate.
+        node (Node): The node to be removed.
+        
+        Returns:
+        list: The updated open list with the node removed.
+    """
     new_list = []
     for n in open_list:
         if not node.__eq__(n):
@@ -75,6 +106,16 @@ def remove_node(open_list, node):
     return new_list
 
 def adjacent_nodes(node, map): # could pass only adjacent cases
+    """
+        Get the adjacent nodes for a given node on the map.
+        
+        Args:
+        node (Node): The current node.
+        map (Map): The map object containing the layout.
+        
+        Returns:
+        list: A list of adjacent nodes.
+    """
     height = map.height
     width = map.width
     nodes = []
